@@ -67,7 +67,7 @@ type Iterator struct {
 // CreateIterator returns a new iterator
 // I want to call the user supplied callback and thread safety
 // in the Range() See, for example, sync.Map API
-func CreateIterator(cb *CyclicBuffer) *Iterator {
+func (cb *CyclicBuffer) CreateIterator() *Iterator {
 	var it Iterator
 	it.cb = cb
 	if cb.full {
@@ -78,6 +78,11 @@ func CreateIterator(cb *CyclicBuffer) *Iterator {
 		it.count = cb.index
 	}
 	return &it
+}
+
+// CreateIterator is backward compatible API
+func CreateIterator(cb *CyclicBuffer) *Iterator {
+	return cb.CreateIterator()
 }
 
 // Value returns item from the iterator
