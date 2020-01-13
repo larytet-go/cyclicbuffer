@@ -4,8 +4,9 @@ import (
 	"sync"
 )
 
-// Thread safe cyclic buffer. I use this one when I need a fast, RAM based log
-// of events. The implementation is *not* lockless
+// CyclicBuffer is a thread safe cyclic buffer.
+// I use this buffer one when I need a fast, RAM based log  of events.
+// The implementation is *not* lockless
 type CyclicBuffer struct {
 	data  []interface{}
 	full  bool
@@ -14,14 +15,17 @@ type CyclicBuffer struct {
 	mutex *sync.Mutex
 }
 
+// Empty returns true is the buffer is empty
 func (cb *CyclicBuffer) Empty() bool {
 	return !cb.NotEmpty()
 }
 
+// NotEmpty returns true is the buffer is not empty
 func (cb *CyclicBuffer) NotEmpty() bool {
 	return (cb.full || (cb.index > 0))
 }
 
+// New creates a buffer
 func New(size int) *CyclicBuffer {
 	return &CyclicBuffer{
 		mutex: &sync.Mutex{},
@@ -32,6 +36,7 @@ func New(size int) *CyclicBuffer {
 	}
 }
 
+// Append adds an item to the cyclic buffer
 func (cb *CyclicBuffer) Append(d interface{}) {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
@@ -45,13 +50,22 @@ func (cb *CyclicBuffer) Append(d interface{}) {
 	cb.index = index
 }
 
+// AppendSafe is a thread safe API
+func (cb *CyclicBuffer) AppendSafe(d interface{}) {
+	cb.mutex.Lock()
+	defer cb.mutex.Unlock()
+	cb.Append(d)
+}
+
+// Iterator object supporting loops
 type Iterator struct {
 	index int
 	count int
 	cb    *CyclicBuffer
 }
 
-// I want to call the user supplied callback and thread safeyty
+// CreateIterator returns a new iterator
+// I want to call the user supplied callback and thread safety
 // in the Range() See, for example, sync.Map API
 func CreateIterator(cb *CyclicBuffer) *Iterator {
 	var it Iterator
@@ -66,6 +80,7 @@ func CreateIterator(cb *CyclicBuffer) *Iterator {
 	return &it
 }
 
+// Value returns item from the iterator
 func (it *Iterator) Value() interface{} {
 	value := it.cb.data[it.index]
 	it.index++
@@ -76,10 +91,12 @@ func (it *Iterator) Value() interface{} {
 	return value
 }
 
+// Next shifts iterator to the next item
 func (it *Iterator) Next() bool {
 	return (it.count > 0)
 }
 
+// Get returns all items in the buffer
 func (cb *CyclicBuffer) Get() []interface{} {
 	var index int
 	var count int
