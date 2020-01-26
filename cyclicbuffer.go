@@ -37,7 +37,8 @@ func New(size int) *CyclicBuffer {
 }
 
 // Append adds an item to the cyclic buffer
-func (cb *CyclicBuffer) Append(d interface{}) {
+// Returns position of the next entry
+func (cb *CyclicBuffer) Append(d interface{}) int {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
 	var index = cb.index
@@ -48,13 +49,14 @@ func (cb *CyclicBuffer) Append(d interface{}) {
 		cb.full = true
 	}
 	cb.index = index
+	return index
 }
 
 // AppendSafe is a thread safe API
-func (cb *CyclicBuffer) AppendSafe(d interface{}) {
+func (cb *CyclicBuffer) AppendSafe(d interface{}) int {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
-	cb.Append(d)
+	return cb.Append(d)
 }
 
 // Iterator object supporting loops
@@ -96,12 +98,13 @@ func (it *Iterator) Value() interface{} {
 	return value
 }
 
-// Next shifts iterator to the next item
+// Next returns true if there anything else
 func (it *Iterator) Next() bool {
 	return (it.count > 0)
 }
 
-// Get returns all items in the buffer
+// Get returns a copy of the stored data
+// This is not a deep copy
 func (cb *CyclicBuffer) Get() []interface{} {
 	var index int
 	var count int
@@ -122,4 +125,9 @@ func (cb *CyclicBuffer) Get() []interface{} {
 		}
 	}
 	return res
+}
+
+// GetData returns all items in the buffer
+func (cb *CyclicBuffer) GetData() []interface{} {
+	return cb.data
 }
